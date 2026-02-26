@@ -1,34 +1,27 @@
 import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras import layers, models
-from tensorflow.keras import Input
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import os
 
-# ----------------------------
-# CONFIG
-# ----------------------------
-IMG_SIZE = 128
-BATCH_SIZE = 16
-EPOCHS = 20
-DATASET_PATH = "dataset"
+# -----------------------------
+# SETTINGS
+# -----------------------------
+DATASET_PATH = "datasets"
+IMG_SIZE = (64, 64)
+BATCH_SIZE = 32
+EPOCHS = 15
 
-# ----------------------------
-# DATA GENERATOR WITH AUGMENTATION
-# ----------------------------
+# -----------------------------
+# DATA GENERATOR
+# -----------------------------
 datagen = ImageDataGenerator(
     rescale=1./255,
-    rotation_range=15,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    zoom_range=0.2,
-    shear_range=0.1,
-    fill_mode='nearest',
     validation_split=0.2
 )
 
 train_data = datagen.flow_from_directory(
     DATASET_PATH,
-    target_size=(IMG_SIZE, IMG_SIZE),
+    target_size=IMG_SIZE,
     batch_size=BATCH_SIZE,
     class_mode='categorical',
     subset='training'
@@ -36,21 +29,18 @@ train_data = datagen.flow_from_directory(
 
 val_data = datagen.flow_from_directory(
     DATASET_PATH,
-    target_size=(IMG_SIZE, IMG_SIZE),
+    target_size=IMG_SIZE,
     batch_size=BATCH_SIZE,
     class_mode='categorical',
     subset='validation'
 )
 
-print("Class indices:", train_data.class_indices)
-
-# ----------------------------
-# CNN MODEL
-# ----------------------------
+# -----------------------------
+# BUILD MODEL
+# -----------------------------
 model = models.Sequential([
-    Input(shape=(IMG_SIZE, IMG_SIZE, 3)),
-
-    layers.Conv2D(32, (3,3), activation='relu'),
+    
+    layers.Conv2D(32, (3,3), activation='relu', input_shape=(64,64,3)),
     layers.MaxPooling2D(2,2),
 
     layers.Conv2D(64, (3,3), activation='relu'),
@@ -60,32 +50,35 @@ model = models.Sequential([
     layers.MaxPooling2D(2,2),
 
     layers.Flatten(),
-    layers.Dense(128, activation='relu'),
-    layers.Dropout(0.3),
 
-    layers.Dense(4, activation='softmax')
+    layers.Dense(128, activation='relu'),
+    layers.Dropout(0.5),
+
+    layers.Dense(train_data.num_classes, activation='softmax')
 ])
 
+# -----------------------------
+# COMPILE MODEL
+# -----------------------------
 model.compile(
     optimizer='adam',
     loss='categorical_crossentropy',
     metrics=['accuracy']
 )
 
-model.summary()
-
-# ----------------------------
-# TRAIN
-# ----------------------------
+# -----------------------------
+# TRAIN MODEL
+# -----------------------------
 history = model.fit(
     train_data,
     validation_data=val_data,
     epochs=EPOCHS
 )
 
-# ----------------------------
-# SAVE MODEL (MODERN FORMAT)
-# ----------------------------
-model.save("shape_model.keras")
+# -----------------------------
+# SAVE MODEL
+# -----------------------------
+model.save("ui_model.keras")
 
-print("Training complete. Model saved as shape_model.keras")
+print("\nModel training complete!")
+print("Classes:", train_data.class_indices)
