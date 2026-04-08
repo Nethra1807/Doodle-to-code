@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Doodle to Code</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="auth-body">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="auth-logo-icon">🎨</span>
+      <div class="auth-logo-text">1Code Platform</div>
+    </div>
+    <h1 class="auth-title">Welcome Back</h1>
+    <p class="auth-subtitle">Log in to generate code from your ideas.</p>
+
+    <!-- Socials demo -->
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <button class="btn-social" onclick="alert('Google OAuth Coming Soon!')">Continue with Google</button>
+      <button class="btn-social" onclick="alert('Apple OAuth Coming Soon!')">Continue with Apple</button>
+    </div>
+
+    <div class="or-divider">OR</div>
+
+    <form id="loginForm">
+      <div class="input-group">
+        <label>Email address</label>
+        <input type="email" id="email" class="input-field" placeholder="you@example.com" required />
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" class="input-field" placeholder="••••••••" required />
+      </div>
+      
+      <div id="errorAlert" class="alert-error" style="display:none; margin-bottom: 1rem;"></div>
+
+      <button type="submit" class="btn-primary" style="width:100%; margin-top: 0.5rem;" id="loginBtn">Log in</button>
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account? <a href="signup.html">Sign up</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { login } from './js/auth.js';
+    
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const pwd = document.getElementById('password').value;
+      const btn = document.getElementById('loginBtn');
+      const alertBox = document.getElementById('errorAlert');
+      
+      btn.innerText = 'Logging in...';
+      btn.disabled = true;
+      alertBox.style.display = 'none';
+
+      const res = await login(email, pwd);
+      
+      btn.disabled = false;
+      btn.innerText = 'Log in';
+
+      if (res.success) {
+        window.location.href = 'index.html';
+      } else {
+        alertBox.innerText = res.error;
+        alertBox.style.display = 'flex';
+      }
+    });
+  </script>
+</body>
+</html>

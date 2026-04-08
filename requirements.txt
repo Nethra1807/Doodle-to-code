@@ -1,5 +1,7 @@
-streamlit
-streamlit-drawable-canvas
+flask
+flask-cors
+flask-sqlalchemy
+bcrypt
 tensorflow
 opencv-python-headless
 numpy

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doodle to Code — App</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <span class="navbar-brand-icon">🎨</span>
+      Doodle to Code
+      <span class="navbar-badge">Beta</span>
+    </div>
+    <div class="navbar-user">
+      <span id="userName">Loading...</span>
+      <div class="navbar-avatar">D</div>
+      <button class="btn-ghost" id="btnLogout" style="margin-left:12px; padding: 4px 10px; font-size: 0.75rem; color: #fca5a5; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05);">Logout</button>
+    </div>
+  </nav>
+
+  <main class="app-main">
+    
+    <!-- Hero / Header -->
+    <div class="hero">
+      <div class="hero-inner">
+        <div class="hero-pill">✦ AI-Powered Design Tool</div>
+        <h1 class="hero-title">Sketch your App ideas.</h1>
+        <p class="hero-subtitle">Turn your fast sketches directly into functional, production-ready website code using our Deep Learning ML model in real-time.</p>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-value">25+</div>
+            <div class="hero-stat-label">Components</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value">React</div>
+            <div class="hero-stat-label">Generated</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-value">Live</div>
+            <div class="hero-stat-label">Preview</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="canvas-section">
+      
+      <!-- Canvas Column (Left) -->
+      <div class="card canvas-card">
+        <div class="canvas-card-header">
+          <div class="canvas-card-icon">✏️</div>
+          <div class="canvas-card-title">Draw Your UI</div>
+        </div>
+        
+        <!-- Interactive Canvas Area -->
+        <canvas id="drawingCanvas"></canvas>
+        
+        <div class="canvas-toolbar">
+          <select id="toolSelect" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.65rem; font-family: 'Inter'; font-size: 0.85rem; outline: none; cursor: pointer;">
+            <option value="freedraw">✏️ Freehand</option>
+            <option value="line">📏 Line</option>
+            <option value="rect">🟦 Rectangle</option>
+            <option value="circle">⭕ Circle</option>
+          </select>
+          <button class="btn-ghost" id="btnClear">🗑️ Clear</button>
+          <button class="btn-ghost" id="btnUndo">↩️ Undo</button>
+          <label class="btn-ghost" style="margin: 0; cursor: pointer;">
+            📤 Upload
+            <input type="file" id="btnUpload" accept="image/png, image/jpeg" style="display: none;" />
+          </label>
+          <div class="spacer"></div>
+          <button class="btn-primary" id="btnGenerate">🚀 Generate Code</button>
+        </div>
+      </div>
+
+      <!-- Info Sidebar Column (Right) -->
+      <div class="card info-card">
+        <div class="section-label">💡 Pro Tips</div>
+        <div class="info-tip">
+          Use very thick, bold strokes for drawing. Thin lines are hard for the model to classify.
+        </div>
+        <div class="info-tip" style="border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.05); color:#86efac;">
+          Sketch one distinct component at a time for the best prediction results.
+        </div>
+        <div class="divider"></div>
+        <div class="section-label">⚙️ ML Pipeline</div>
+        <div class="info-stat-row"><span class="info-stat-label">Model</span><span class="info-stat-value">ui_model.keras</span></div>
+        <div class="info-stat-row"><span class="info-stat-label">Framework</span><span class="info-stat-value">TensorFlow</span></div>
+        <div class="info-stat-row"><span class="info-stat-label">Classes</span><span class="info-stat-value">25 Labels</span></div>
+      </div>
+    </div>
+
+
+    <!-- Status & Results Section -->
+    
+    <!-- Pending Loading overlay -->
+    <div id="loadingOverlay" class="loading-overlay card" style="margin-top:2rem;">
+      <div class="spinner spinner-large"></div>
+      <div class="loading-text">Analyzing your sketch using Deep Learning...</div>
+    </div>
+
+    <!-- Global Error alert -->
+    <div id="errorBox" class="alert-error" style="display:none; max-width:600px; margin:2rem auto 0; text-align:left;"></div>
+
+    <div id="idleState" class="idle-card">
+      <span class="idle-icon">✨</span>
+      <div class="idle-title">Ready for your ideas</div>
+      <div class="idle-desc">Draw a component on the canvas above and hit Generate Code to see the magic happen.</div>
+      <div class="idle-chips">
+        <div class="idle-chip">AI Powered</div>
+        <div class="idle-chip">React/HTML Output</div>
+      </div>
+    </div>
+
+    <!-- The actual Results Panel (Hidden by default) -->
+    <div id="resultsSection" class="results-section" style="display:none;">
+      
+      <!-- Prediction Conf + Badge -->
+      <div class="card" style="margin-bottom:1.5rem; padding: 1.5rem;">
+        <div class="section-label">🧠 Analysis Results</div>
+        
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:1rem; flex-wrap:wrap;">
+          <span class="badge badge-blue" id="dynamicBadge">🧩 Component</span>
+          <span class="badge badge-green">✔ Successfully Detected</span>
+        </div>
+
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; display:flex; justify-content:space-between;">
+          <span>Neural Network Confidence</span>
+          <span id="lblConfidence" style="font-weight:700; color:#60a5fa;">0%</span>
+        </div>
+        <div class="conf-bar-bg">
+          <div class="conf-bar" id="confBar" style="width:0%;"></div>
+        </div>
+        <!-- Hidden label store -->
+        <span id="lblComponent" style="display:none;"></span>
+      </div>
+
+      <!-- Live Preview -->
+      <div class="section-label" style="margin-top:2rem;">🌐 Live Website Preview</div>
+      <div class="preview-wrapper" style="margin-bottom:1.5rem;">
+        <div class="preview-bar">
+          <div class="preview-dot" style="background:#ef4444;"></div>
+          <div class="preview-dot" style="background:#f59e0b;"></div>
+          <div class="preview-dot" style="background:#22c55e;"></div>
+          <div class="preview-url">doodle-to-code · local</div>
+        </div>
+        <iframe id="previewIframe" class="preview-iframe"></iframe>
+      </div>
+
+      <!-- Code Output -->
+      <div class="section-label" style="margin-top:2rem;">💻 Generated Code</div>
+      <div class="tabs">
+        <button class="tab-btn active" data-target="tabHTML">🌐 HTML / CSS</button>
+        <button class="tab-btn" data-target="tabReact">⚛️ React</button>
+      </div>
+      
+      <div class="card">
+        <div id="tabHTML" class="tab-content active">
+          <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+            <button class="copy-btn" id="copyHtmlBtn">📋 Copy full code</button>
+          </div>
+          <div class="code-block" id="htmlCodeBlock"></div>
+        </div>
+        
+        <div id="tabReact" class="tab-content">
+          <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+            <button class="copy-btn" id="copyReactBtn">📋 Copy React Snippet</button>
+          </div>
+          <div class="code-block" id="reactCodeBlock"></div>
+        </div>
+      </div>
+      
+    </div> <!-- /results-section -->
+
+  </main>
+  
+  <footer class="footer">
+    <div class="footer-title">🎨 Doodle to Code</div>
+    <div class="footer-stack">
+      <span>Flask</span><span>TensorFlow</span><span>HTML/JS</span><span>Bcrypt</span>
+    </div>
+    <div style="margin-top:6px;">© 2024 Doodle-to-Code refactored version.</div>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

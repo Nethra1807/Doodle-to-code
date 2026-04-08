@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Up - Doodle to Code</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="auth-body">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="auth-logo-icon">✨</span>
+      <div class="auth-logo-text">1Code Platform</div>
+    </div>
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-subtitle">Join us to turn sketches into reality.</p>
+
+    <form id="signupForm">
+      <div class="input-group">
+        <label>Full Name</label>
+        <input type="text" id="name" class="input-field" placeholder="John Doe" required />
+      </div>
+      <div class="input-group">
+        <label>Email address</label>
+        <input type="email" id="email" class="input-field" placeholder="you@example.com" required />
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="password" class="input-field" placeholder="Min 6 characters" required minlength="6" />
+      </div>
+      <div class="input-group">
+        <label>Confirm Password</label>
+        <input type="password" id="confirm" class="input-field" required minlength="6" />
+      </div>
+      <div class="input-group">
+        <label>Phone number (Optional)</label>
+        <input type="text" id="phone" class="input-field" placeholder="+1..." />
+      </div>
+
+      <div class="terms-row">
+        <input type="checkbox" id="terms" required />
+        <span>I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</span>
+      </div>
+
+      <div id="errorAlert" class="alert-error" style="display:none; margin-bottom: 1rem;"></div>
+
+      <button type="submit" class="btn-primary" style="width:100%;" id="signupBtn">Create Account</button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="login.html">Log in</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { signup } from './js/auth.js';
+    
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const pwd = document.getElementById('password').value;
+      const confirm = document.getElementById('confirm').value;
+      const phone = document.getElementById('phone').value;
+      const btn = document.getElementById('signupBtn');
+      const alertBox = document.getElementById('errorAlert');
+      
+      if (pwd !== confirm) {
+        alertBox.innerText = 'Passwords do not match';
+        alertBox.style.display = 'flex';
+        return;
+      }
+
+      btn.innerText = 'Creating...';
+      btn.disabled = true;
+      alertBox.style.display = 'none';
+
+      const res = await signup(name, email, pwd, confirm, phone);
+      
+      btn.disabled = false;
+      btn.innerText = 'Create Account';
+
+      if (res.success) {
+        window.location.href = 'index.html';
+      } else {
+        alertBox.innerText = res.error;
+        alertBox.style.display = 'flex';
+      }
+    });
+  </script>
+</body>
+</html>
