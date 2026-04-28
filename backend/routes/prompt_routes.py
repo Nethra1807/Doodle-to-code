@@ -54,22 +54,20 @@ def generate_llm_ui(prompt_text, predicted_label):
         import google.generativeai as genai
         
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         
-        system_prompt = f"""You are an expert Frontend Developer.
-Generate a clean, responsive UI using HTML and Tailwind CSS.
-Page type: {predicted_label}
-
-Requirements:
-- Modern UI, proper spacing, mobile responsive
-- Use appropriate semantic HTML components
-- Use Tailwind CSS classes for styling
-- Do NOT include ```html markdown tags
-- Return ONLY the raw HTML code. Do NOT wrap it in <html> or <body>.
-- Include a parent container like <div class="p-8 ...">"""
+        # Proper system instruction to ensure Gemini generates ONLY the requested UI
+        system_instruction = (
+            "You are an expert Frontend Developer. "
+            "Generate ONLY the requested UI element based on the user's prompt. "
+            "Use Tailwind CSS for styling. "
+            "Return ONLY raw HTML code within a single root <div>. "
+            "Do NOT include ```html markdown tags, explanations, or any other text. "
+            "Ensure the UI is modern, responsive, and visually attractive."
+        )
         
         response = model.generate_content(
-            f"{system_prompt}\n\nUser Request: {prompt_text}"
+            f"{system_instruction}\n\nUser Prompt: {prompt_text}"
         )
         
         content = ""
@@ -98,6 +96,10 @@ Requirements:
 def _mock_generator(label):
     if label == "form":
         return '<div class="p-8 max-w-md mx-auto bg-white rounded-xl shadow-md space-y-4"><h1 class="text-2xl font-bold">Login</h1><input class="w-full border p-2 rounded" placeholder="Email" /><input type="password" class="w-full border p-2 rounded" placeholder="Password" /><button class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Submit</button></div>'
+    elif label == "table":
+        return '<div class="p-8"><div class="overflow-x-auto"><table class="min-w-full bg-white border"><thead class="bg-gray-100"><tr><th class="p-3 text-left">Name</th><th class="p-3 text-left">Role</th><th class="p-3 text-left">Status</th></tr></thead><tbody><tr class="border-t"><td class="p-3">Jane Cooper</td><td class="p-3">Admin</td><td class="p-3"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Active</span></td></tr><tr class="border-t"><td class="p-3">Cody Fisher</td><td class="p-3">Developer</td><td class="p-3"><span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">Offline</span></td></tr></tbody></table></div></div>'
+    elif label == "navbar" or label == "navigation":
+        return '<nav class="bg-slate-900 text-white p-4 flex justify-between items-center"><div class="text-xl font-bold">Brand</div><ul class="flex gap-6"><li>Home</li><li>Products</li><li>About</li></ul><button class="bg-blue-600 px-4 py-2 rounded">Sign In</button></nav>'
     elif label == "dashboard":
         return '<div class="flex h-screen bg-gray-100"><aside class="w-64 bg-slate-800 text-white p-4"><div class="text-xl font-bold mb-4">Dashboard</div><ul class="space-y-2"><li class="hover:bg-slate-700 p-2 rounded cursor-pointer">Home</li><li class="hover:bg-slate-700 p-2 rounded cursor-pointer">Stats</li></ul></aside><main class="flex-1 p-8"><h1 class="text-3xl font-bold mb-4">Welcome</h1><div class="grid grid-cols-2 gap-4"><div class="bg-white p-6 rounded shadow">Metric 1: <span class="font-bold text-green-500">↑ 12%</span></div><div class="bg-white p-6 rounded shadow">Metric 2: 45K</div></div></main></div>'
     elif label == "ecommerce":

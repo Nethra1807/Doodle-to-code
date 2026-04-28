@@ -42,21 +42,20 @@ def generate():
         import google.generativeai as genai
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        model = genai.GenerativeModel("gemini-2.0-flash")
 
-        system_prompt = (
-            "You are an expert Frontend Developer.\n"
-            "Generate a clean, responsive UI component based on the user's description.\n\n"
-            "Rules:\n"
-            "- Use Tailwind CSS for styling (it will be loaded via CDN — do NOT add the CDN tag yourself).\n"
-            "- Return ONLY raw HTML. No <html>, <head>, or <body> wrappers.\n"
-            "- Do NOT wrap output in markdown code fences (no ```html).\n"
-            "- Start with a single root <div> that has padding, e.g. <div class=\"p-8 ...\">\n"
-            "- Make it modern, responsive, and visually attractive."
+        # Proper system instruction to ensure Gemini generates ONLY the requested UI
+        system_instruction = (
+            "You are an expert Frontend Developer. "
+            "Generate ONLY the requested UI element based on the user's prompt. "
+            "Use Tailwind CSS for styling. "
+            "Return ONLY raw HTML code within a single root <div>. "
+            "Do NOT include ```html markdown tags, explanations, or any other text. "
+            "Ensure the UI is modern, responsive, and visually attractive."
         )
 
         response = model.generate_content(
-            f"{system_prompt}\n\nUser Request: {user_prompt}"
+            f"{system_instruction}\n\nUser Prompt: {user_prompt}"
         )
 
         html_code = ""

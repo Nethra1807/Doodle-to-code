@@ -1,32 +1,30 @@
 import { initCanvas, captureCanvas, undo, clearCanvas, setDrawingMode, uploadImage } from './canvas.js';
 import { requireAuth, getToken, logout } from './auth.js';
 
-const API_URL = 'http://127.0.0.1:5000';
+// ✅ TWO BACKENDS
+const ML_API = "http://127.0.0.1:5000";       // TensorFlow
+
+let currentMode = "draw";
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Auth check
     await requireAuth();
 
-    // Set user name
     const nameEl = document.getElementById('userName');
     if (nameEl) {
         nameEl.innerText = localStorage.getItem('authName') || 'Developer';
     }
 
-    // Init canvas
     initCanvas();
 
-    // Bind Canvas Toolbar basic actions
     const btnUndo = document.getElementById('btnUndo');
     const btnClear = document.getElementById('btnClear');
     if (btnUndo) btnUndo.addEventListener('click', undo);
     if (btnClear) btnClear.addEventListener('click', clearCanvas);
 
-    // Bind Generate Action
     const btnGenerate = document.getElementById('btnGenerate');
     if (btnGenerate) btnGenerate.addEventListener('click', handleGenerate);
+    setupModeToggle();
 
-    // Bind tool select
     const toolSelect = document.getElementById('toolSelect');
     if (toolSelect) {
         toolSelect.addEventListener('change', (e) => {
@@ -34,7 +32,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Bind upload
     const btnUpload = document.getElementById('btnUpload');
     if (btnUpload) {
         btnUpload.addEventListener('change', (e) => {
@@ -45,24 +42,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // Bind tabs
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const targetId = e.target.getAttribute('data-target');
-            
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            e.target.classList.add('active');
-            document.getElementById(targetId).classList.add('active');
-        });
-    });
-
-    // Setup Copy buttons
     setupCopyBtn('copyHtmlBtn', 'htmlCodeBlock');
     setupCopyBtn('copyReactBtn', 'reactCodeBlock');
 
-    // Logout
     const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) btnLogout.addEventListener('click', (e) => {
         e.preventDefault();
@@ -70,23 +52,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
+
+// =========================
+// 🔥 MAIN GENERATE FUNCTION
+// =========================
 async function handleGenerate() {
+    // Prompt mode has its own React UI and submit handler.
+    if (currentMode !== "draw") {
+        return;
+    }
+
+    // =========================
+    // ✏️ DRAW MODE → ML (5000)
+    // =========================
     const base64Img = captureCanvas();
     if (!base64Img) return;
 
-    // Show loading
-    const overlay = document.getElementById('loadingOverlay');
-    const resultsSection = document.getElementById('resultsSection');
-    const idleState = document.getElementById('idleState');
-    const errorBox = document.getElementById('errorBox');
-    
-    if (idleState) idleState.style.display = 'none';
-    if (resultsSection) resultsSection.style.display = 'none';
-    if (errorBox) errorBox.style.display = 'none';
-    if (overlay) overlay.classList.add('visible');
-
     try {
-        const res = await fetch(`${API_URL}/predict`, {
+        const res = await fetch(`${ML_API}/predict`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -94,24 +77,25 @@ async function handleGenerate() {
             },
             body: JSON.stringify({ image: base64Img })
         });
-        
+
         const data = await res.json();
-        
-        if (overlay) overlay.classList.remove('visible');
 
         if (!res.ok) {
-            showError(data.error || 'Failed to generate code from server.');
+            showError(data.error || 'Prediction failed');
             return;
         }
 
         renderResults(data);
 
     } catch (err) {
-        if (overlay) overlay.classList.remove('visible');
-        showError('Network error connecting to Backend.');
+        showError('Network error connecting to ML backend.');
     }
 }
 
+
+// =========================
+// 🔹 ERROR HANDLER
+// =========================
 function showError(msg) {
     const box = document.getElementById('errorBox');
     if (!box) return;
@@ -119,59 +103,81 @@ function showError(msg) {
     box.innerHTML = `<strong>Error:</strong> ${msg}`;
 }
 
+
+// =========================
+// 🔹 RENDER DRAW RESULTS
+// =========================
 function renderResults(data) {
     const section = document.getElementById('resultsSection');
     if (!section) return;
-    
+
+    const htmlCode = data?.html || data?.html_code || data?.response || "";
+    const reactCode = data?.react || data?.react_code || htmlCode;
+
     section.style.display = 'block';
 
-    // 1. Badge + Conf
-    document.getElementById('lblComponent').innerText = data.label;
-    document.getElementById('lblConfidence').innerText = `${data.confidence}%`;
-    document.getElementById('confBar').style.width = `${data.confidence}%`;
-    
-    let colorClass, iconHtml;
-    // Map existing badge stuff
-    if(data.label.toLowerCase().includes('text') || data.label.toLowerCase().includes('form')) {
-        colorClass = 'badge-blue'; iconHtml = '📝';
-    } else if (data.label.toLowerCase().includes('check') || data.label.toLowerCase().includes('enabled')) {
-        colorClass = 'badge-green'; iconHtml = '✅';
-    } else if (data.label.toLowerCase().includes('alert')) {
-        colorClass = 'badge-rose'; iconHtml = '⚠️';
-    } else {
-        colorClass = 'badge-blue'; iconHtml = '🧩';
-    }
-    
-    const b = document.getElementById('dynamicBadge');
-    b.className = `badge ${colorClass}`;
-    b.innerText = `${iconHtml} ${data.label}`;
+    const htmlCodeBlock = document.getElementById('htmlCodeBlock');
+    const reactCodeBlock = document.getElementById('reactCodeBlock');
+    if (htmlCodeBlock) htmlCodeBlock.innerText = htmlCode;
+    if (reactCodeBlock) reactCodeBlock.innerText = reactCode;
 
-    // 2. Code blocks
-    document.getElementById('htmlCodeBlock').innerText = data.html_code;
-    document.getElementById('reactCodeBlock').innerText = data.react_code;
-
-    // 3. Iframe preview (render HTML inside Iframe)
     const iframe = document.getElementById('previewIframe');
-    const c = iframe.contentWindow.document;
-    c.open();
-    c.write(`
-        <style>
-          body { font-family: 'Inter', -apple-system, sans-serif; padding: 20px; margin: 0;}
-        </style>
-        ${data.html_code}
-    `);
-    c.close();
+    if (iframe && iframe.contentWindow) {
+        const c = iframe.contentWindow.document;
+        c.open();
+        c.write(htmlCode);
+        c.close();
+    }
 }
 
+
+// =========================
+// 🔹 COPY BUTTON
+// =========================
 function setupCopyBtn(btnId, targetId) {
     const btn = document.getElementById(btnId);
     if (!btn) return;
+
     btn.addEventListener('click', () => {
         const text = document.getElementById(targetId).innerText;
+
         navigator.clipboard.writeText(text).then(() => {
             const orig = btn.innerText;
             btn.innerText = '✅ Copied!';
             setTimeout(() => btn.innerText = orig, 2000);
         });
     });
+}
+
+function setupModeToggle() {
+    const modeBtnDraw = document.getElementById('modeBtnDraw');
+    const modeBtnPrompt = document.getElementById('modeBtnPrompt');
+    const drawCard = document.getElementById('drawCard');
+    const promptCard = document.getElementById('promptCard');
+    const idleState = document.getElementById('idleState');
+    const resultsSection = document.getElementById('resultsSection');
+    const errorBox = document.getElementById('errorBox');
+
+    if (!modeBtnDraw || !modeBtnPrompt || !drawCard || !promptCard) return;
+
+    const applyMode = (mode) => {
+        currentMode = mode;
+
+        const isDraw = mode === "draw";
+        drawCard.style.display = isDraw ? 'block' : 'none';
+        promptCard.style.display = isDraw ? 'none' : 'block';
+
+        modeBtnDraw.className = isDraw ? 'btn-primary' : 'btn-ghost';
+        modeBtnPrompt.className = isDraw ? 'btn-ghost' : 'btn-primary';
+
+        if (!isDraw) {
+            if (idleState) idleState.style.display = 'none';
+            if (resultsSection) resultsSection.style.display = 'none';
+            if (errorBox) errorBox.style.display = 'none';
+        }
+    };
+
+    modeBtnDraw.addEventListener('click', () => applyMode("draw"));
+    modeBtnPrompt.addEventListener('click', () => applyMode("prompt"));
+    applyMode("draw");
 }

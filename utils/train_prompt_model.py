@@ -24,7 +24,14 @@ def train_and_save():
         ("Forgot password screen", "form"),
         ("Metrics overview", "dashboard"),
         ("Store checkout page", "ecommerce"),
-        ("Edit profile information", "profile")
+        ("Edit profile information", "profile"),
+        ("Pricing table for subscription plans", "table"),
+        ("Data table with sortable columns", "table"),
+        ("User management table", "table"),
+        ("Product inventory list", "table"),
+        ("Contact list with search", "list"),
+        ("Hero section for a startup", "landing"),
+        ("Landing page with features and CTA", "landing")
     ]
     
     texts = [item[0] for item in data]

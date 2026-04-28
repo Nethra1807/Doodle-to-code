@@ -47,11 +47,17 @@
       </div>
     </div>
 
+    <!-- Mode Toggle -->
+    <div style="display:flex; justify-content:center; gap: 10px; margin-bottom: 20px;">
+      <button class="btn-primary" id="modeBtnDraw">✏️ Draw Mode</button>
+      <button class="btn-ghost" id="modeBtnPrompt">💬 Prompt Mode</button>
+    </div>
+
     <!-- Main Workspace -->
     <div class="canvas-section">
       
       <!-- Canvas Column (Left) -->
-      <div class="card canvas-card">
+      <div class="card canvas-card" id="drawCard">
         <div class="canvas-card-header">
           <div class="canvas-card-icon">✏️</div>
           <div class="canvas-card-title">Draw Your UI</div>
@@ -76,6 +82,12 @@
           <div class="spacer"></div>
           <button class="btn-primary" id="btnGenerate">🚀 Generate Code</button>
         </div>
+      </div>
+
+      <!-- Prompt Column (Left - Hidden by default) -->
+      <!-- Prompt Column (Left - Hidden by default) -->
+      <div class="card canvas-card" id="promptCard" style="display:none; padding:1.5rem;">
+        <div id="react-prompt-root" style="width: 100%; height: 100%;"></div>
       </div>
 
       <!-- Info Sidebar Column (Right) -->
@@ -187,6 +199,10 @@
     <div style="margin-top:6px;">© 2024 Doodle-to-Code refactored version.</div>
   </footer>
 
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <script type="text/babel" src="js/PromptReact.jsx"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
