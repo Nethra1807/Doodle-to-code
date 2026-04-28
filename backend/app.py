@@ -6,7 +6,9 @@ ML code (utils/, model/) is completely unchanged.
 
 import sys
 import os
+from dotenv import load_dotenv
 
+load_dotenv()
 # ── Add project root to path so utils/ and model/ work unchanged ──────────────
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, PROJECT_ROOT)
@@ -19,6 +21,8 @@ import json
 
 from routes.auth_routes import auth_bp
 from routes.predict_routes import predict_bp
+from routes.prompt_routes import prompt_bp
+from routes.generate_routes import generate_bp
 
 # ── App setup ─────────────────────────────────────────────────────────────────
 app = Flask(__name__)
@@ -37,6 +41,8 @@ db.init_app(app)
 # ── Register blueprints ───────────────────────────────────────────────────────
 app.register_blueprint(auth_bp)
 app.register_blueprint(predict_bp)
+app.register_blueprint(prompt_bp)
+app.register_blueprint(generate_bp)
 
 # ── Serve frontend static files ───────────────────────────────────────────────
 FRONTEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
@@ -106,4 +112,4 @@ if __name__ == "__main__":
     print("\n👉  http://localhost:5000  👈\n")
     print("="*60 + "\n")
     
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=False, host="0.0.0.0", port=5000)
