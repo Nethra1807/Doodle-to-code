@@ -12,6 +12,11 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from routes.predict_routes import _validate_token, _react_code
+from dotenv import load_dotenv
+
+# Ensure environment is loaded in this process
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 prompt_bp = Blueprint("prompt", __name__)
 
@@ -54,6 +59,7 @@ def generate_llm_ui(prompt_text, predicted_label):
         import google.generativeai as genai
         
         genai.configure(api_key=api_key)
+        # Verified working model identifier
         model = genai.GenerativeModel("gemini-2.0-flash")
         
         # Proper system instruction to ensure Gemini generates ONLY the requested UI
@@ -99,7 +105,7 @@ def _mock_generator(label):
     elif label == "table":
         return '<div class="p-8"><div class="overflow-x-auto"><table class="min-w-full bg-white border"><thead class="bg-gray-100"><tr><th class="p-3 text-left">Name</th><th class="p-3 text-left">Role</th><th class="p-3 text-left">Status</th></tr></thead><tbody><tr class="border-t"><td class="p-3">Jane Cooper</td><td class="p-3">Admin</td><td class="p-3"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Active</span></td></tr><tr class="border-t"><td class="p-3">Cody Fisher</td><td class="p-3">Developer</td><td class="p-3"><span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">Offline</span></td></tr></tbody></table></div></div>'
     elif label == "navbar" or label == "navigation":
-        return '<nav class="bg-slate-900 text-white p-4 flex justify-between items-center"><div class="text-xl font-bold">Brand</div><ul class="flex gap-6"><li>Home</li><li>Products</li><li>About</li></ul><button class="bg-blue-600 px-4 py-2 rounded">Sign In</button></nav>'
+        return '<nav class="bg-slate-900 text-white p-6 flex justify-between items-center shadow-lg"><div class="text-2xl font-bold flex items-center gap-2"><span>🚀</span> AppName</div><ul class="flex gap-8 font-medium"><li><a href="#" class="hover:text-blue-400">Home</a></li><li><a href="#" class="hover:text-blue-400">Features</a></li><li><a href="#" class="hover:text-blue-400">About</a></li></ul><button class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-full transition-all">Get Started</button></nav>'
     elif label == "dashboard":
         return '<div class="flex h-screen bg-gray-100"><aside class="w-64 bg-slate-800 text-white p-4"><div class="text-xl font-bold mb-4">Dashboard</div><ul class="space-y-2"><li class="hover:bg-slate-700 p-2 rounded cursor-pointer">Home</li><li class="hover:bg-slate-700 p-2 rounded cursor-pointer">Stats</li></ul></aside><main class="flex-1 p-8"><h1 class="text-3xl font-bold mb-4">Welcome</h1><div class="grid grid-cols-2 gap-4"><div class="bg-white p-6 rounded shadow">Metric 1: <span class="font-bold text-green-500">↑ 12%</span></div><div class="bg-white p-6 rounded shadow">Metric 2: 45K</div></div></main></div>'
     elif label == "ecommerce":

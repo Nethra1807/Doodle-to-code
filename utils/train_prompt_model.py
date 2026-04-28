@@ -31,7 +31,11 @@ def train_and_save():
         ("Product inventory list", "table"),
         ("Contact list with search", "list"),
         ("Hero section for a startup", "landing"),
-        ("Landing page with features and CTA", "landing")
+        ("Landing page with features and CTA", "landing"),
+        ("Navigation bar with links", "navbar"),
+        ("Site header with logo and menu", "navbar"),
+        ("Mobile responsive navbar", "navbar"),
+        ("Top menu bar for navigation", "navbar")
     ]
     
     texts = [item[0] for item in data]
