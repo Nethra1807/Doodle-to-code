@@ -35,7 +35,20 @@ def train_and_save():
         ("Navigation bar with links", "navbar"),
         ("Site header with logo and menu", "navbar"),
         ("Mobile responsive navbar", "navbar"),
-        ("Top menu bar for navigation", "navbar")
+        ("Top menu bar for navigation", "navbar"),
+        ("Footer with copyright and links", "footer"),
+        ("Bottom site section with social icons", "footer"),
+        ("Image carousel slider", "carousel"),
+        ("Sliding banner with images", "carousel"),
+        ("Sidebar menu for admin", "sidebar"),
+        ("Left navigation panel", "sidebar"),
+        ("Grid of cards with images", "cards"),
+        ("Team section with profile cards", "cards"),
+        ("Pricing cards for plans", "cards"),
+        ("Modal popup window", "modal"),
+        ("Contact dialog box", "modal"),
+        ("Search bar with icon", "search"),
+        ("Input field for searching", "search")
     ]
     
     texts = [item[0] for item in data]
