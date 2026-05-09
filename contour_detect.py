@@ -8,10 +8,9 @@ from tensorflow.keras.models import load_model
 # ----------------------------
 model = load_model("shape_model.keras")
 
-
 # IMPORTANT: must match alphabetical order of dataset folders
 class_labels = ["button", "checkbox", "radio", "textbox"]
-
+         
 # ----------------------------
 # FOLDERS
 # ----------------------------
@@ -26,7 +25,7 @@ images = os.listdir(input_folder)
 # PROCESS IMAGES
 # ----------------------------
 for image_file in images:
-
+    
     image_path = os.path.join(input_folder, image_file)
     print(f"\nProcessing: {image_file}")
 
@@ -117,9 +116,129 @@ for image_file in images:
     # GENERATE HTML
     # ----------------------------
     html_output = f"""
-<html>
-<body style="background:#f2f2f2; font-family:Arial;">
-<div style="position:relative; width:{width}px; height:{height}px;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generated UI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+    body {{
+        background: linear-gradient(135deg, #f6f8fd 0%, #f1f5f9 100%);
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+        padding: 40px;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }}
+    .canvas {{
+        position: relative;
+        width: {width}px;
+        height: {height}px;
+        background: rgba(255, 255, 255, 0.85);
+        border-radius: 24px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }}
+    /* Checkbox & Radio */
+    .ctrl-input {{
+        appearance: none;
+        background-color: #fff;
+        margin: 0;
+        font: inherit;
+        color: currentColor;
+        width: 24px;
+        height: 24px;
+        border: 2px solid #cbd5e1;
+        display: grid;
+        place-content: center;
+        transition: all 0.2s ease-in-out;
+        cursor: pointer;
+    }}
+    .ctrl-input:hover {{
+        border-color: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }}
+    .ctrl-input::before {{
+        content: "";
+        width: 12px;
+        height: 12px;
+        transform: scale(0);
+        transition: 120ms transform ease-in-out;
+        box-shadow: inset 1em 1em white;
+    }}
+    .ctrl-input:checked {{
+        background-color: #6366f1;
+        border-color: #6366f1;
+    }}
+    .ctrl-input:checked::before {{
+        transform: scale(1);
+    }}
+    input[type="checkbox"].ctrl-input {{
+        border-radius: 6px;
+    }}
+    input[type="checkbox"].ctrl-input::before {{
+        transform-origin: bottom left;
+        clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    }}
+    input[type="radio"].ctrl-input {{
+        border-radius: 50%;
+    }}
+    input[type="radio"].ctrl-input::before {{
+        border-radius: 50%;
+        background-color: white;
+    }}
+    /* Textbox */
+    .textbox {{
+        padding: 0.75rem 1rem;
+        background: #f8fafc;
+        border: 2px solid transparent;
+        border-radius: 12px;
+        font-size: 1rem;
+        color: #1e293b;
+        transition: all 0.3s ease;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+        box-sizing: border-box;
+    }}
+    .textbox:focus {{
+        outline: none;
+        background: #fff;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+    }}
+    .textbox::placeholder {{
+        color: #94a3b8;
+    }}
+    /* Button */
+    .btn {{
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }}
+    .btn:hover {{
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }}
+    .btn:active {{
+        transform: translateY(1px);
+    }}
+</style>
+</head>
+<body>
+<div class="canvas">
 """
 
     for el in elements:
@@ -129,46 +248,28 @@ for image_file in images:
 
         if el["type"] == "checkbox":
             html_output += f"""
-<input type="checkbox" style="
-position:absolute;
-left:{left}px;
-top:{top}px;">
+<input type="checkbox" class="ctrl-input" style="position:absolute; left:{left}px; top:{top}px;">
 """
 
         elif el["type"] == "radio":
             html_output += f"""
-<input type="radio" style="
-position:absolute;
-left:{left}px;
-top:{top}px;">
+<input type="radio" class="ctrl-input" style="position:absolute; left:{left}px; top:{top}px;">
 """
 
         elif el["type"] == "textbox":
+            # Using max to assure minimum reasonable width/height for a textbox
+            tb_w = max(el['w'], 100)
+            tb_h = max(el['h'], 40)
             html_output += f"""
-<input type="text" style="
-position:absolute;
-left:{left}px;
-top:{top}px;
-width:{el['w']}px;
-height:32px;
-padding:4px;
-border:1px solid #444;">
+<input type="text" class="textbox" placeholder="Input..." style="position:absolute; left:{left}px; top:{top}px; width:{tb_w}px; height:{tb_h}px;">
 """
 
         elif el["type"] == "button":
+            btn_w = max(el['w'], 80)
+            btn_h = max(el['h'], 40)
             html_output += f"""
-<button style="
-position:absolute;
-left:{left}px;
-top:{top}px;
-width:{el['w']}px;
-height:40px;
-background-color:#1976d2;
-color:white;
-border:none;
-border-radius:6px;
-cursor:pointer;">
-Button
+<button class="btn" style="position:absolute; left:{left}px; top:{top}px; width:{btn_w}px; height:{btn_h}px;">
+Action
 </button>
 """
 
