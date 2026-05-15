@@ -78,7 +78,7 @@ history = model.fit(
 # -----------------------------
 # SAVE MODEL
 # -----------------------------
-model.save("ui_model.keras")
+model.save("model/ui_model.keras")
 
 print("\nModel training complete!")
 print("Classes:", train_data.class_indices)

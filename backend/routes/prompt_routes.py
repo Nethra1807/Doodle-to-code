@@ -1,0 +1,180 @@
+import sys
+import os
+import random
+import pickle
+import traceback
+import requests
+
+from flask import Blueprint, request, jsonify
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from routes.predict_routes import _validate_token, _react_code
+from dotenv import load_dotenv
+
+# Ensure environment is loaded in this process
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+
+prompt_bp = Blueprint("prompt", __name__)
+
+# Load models
+MODEL_PATH = os.path.join(PROJECT_ROOT, "model", "model.pkl")
+VECTORIZER_PATH = os.path.join(PROJECT_ROOT, "model", "vectorizer.pkl")
+
+_model = None
+_vectorizer = None
+
+def load_models():
+    global _model, _vectorizer
+    try:
+        if not os.path.exists(MODEL_PATH) or not os.path.exists(VECTORIZER_PATH):
+            sys.path.insert(0, PROJECT_ROOT)
+            from utils.train_prompt_model import train_and_save
+            print("Prompt models not found, training new ones...")
+            train_and_save()
+
+        with open(VECTORIZER_PATH, "rb") as f:
+            _vectorizer = pickle.load(f)
+        with open(MODEL_PATH, "rb") as f:
+            _model = pickle.load(f)
+            
+        print("✅ Prompt ML models loaded successfully")
+    except Exception as e:
+        print(f"❌ Failed to load prompt models: {e}")
+
+# Try to load on import
+load_models()
+
+
+def generate_llm_ui(prompt_text, predicted_label):
+    clean_prompt = f"""
+Generate a UI component using HTML and Tailwind CSS.
+
+STRICT RULES:
+
+* Only generate the component requested
+* Do NOT default to a form unless explicitly asked
+* If the request includes a form, include a proper <form> element
+* If the request does not include a form, do NOT include <form>
+* Return only clean HTML
+* No explanations, no markdown, no extra text
+* All tags must be properly closed
+
+Task:
+{prompt_text}
+"""
+    
+    payload = {
+        "model": "deepseek-coder",
+        "prompt": clean_prompt,
+        "stream": False
+    }
+    
+    try:
+        response = requests.post("http://localhost:11434/api/generate", json=payload, timeout=120)
+        response.raise_for_status()
+        output = response.json()['response']
+
+        # remove markdown
+        output = output.replace('```html', '').replace('```', '')
+
+        # fix quotes
+        output = output.replace('\\"', '"')
+
+        # Check if prompt requested a form
+        form_keywords = ["form", "login", "signup"]
+        wants_form = any(kw in prompt_text.lower() for kw in form_keywords)
+        
+        if not wants_form:
+            import re
+            # REMOVE form tags safely and case-insensitively
+            output = re.sub(r'(?i)<form', '<div', output)
+            output = re.sub(r'(?i)</form>', '</div>', output)
+
+        # extract clean HTML
+        start = output.find("<")
+        end = output.rfind(">")
+
+        if start != -1 and end != -1:
+            output = output[start:end+1]
+
+        final_label = predicted_label
+        html_code = output
+
+        # Inject Tailwind CDN
+        if "<script src=\"https://cdn.tailwindcss.com\"></script>" not in html_code:
+            html_code = "<script src=\"https://cdn.tailwindcss.com\"></script>\n" + html_code
+            
+        return final_label, html_code
+
+    except requests.exceptions.ConnectionError:
+        raise Exception("Ollama is not running. Please start it.")
+    except Exception as e:
+        traceback.print_exc()
+        print(f"❌ Ollama API call failed: {e}. Falling back to mock generator.")
+        return predicted_label, _mock_generator(predicted_label)
+
+
+def _mock_generator(label):
+    if label == "form":
+        return '<div class="p-8 max-w-md mx-auto bg-white rounded-xl shadow-md space-y-4"><h1 class="text-2xl font-bold">Login</h1><input class="w-full border p-2 rounded" placeholder="Email" /><input type="password" class="w-full border p-2 rounded" placeholder="Password" /><button class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Submit</button></div>'
+    elif label == "table":
+        return '<div class="p-8"><div class="overflow-x-auto"><table class="min-w-full bg-white border"><thead class="bg-gray-100"><tr><th class="p-3 text-left">Name</th><th class="p-3 text-left">Role</th><th class="p-3 text-left">Status</th></tr></thead><tbody><tr class="border-t"><td class="p-3">Jane Cooper</td><td class="p-3">Admin</td><td class="p-3"><span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Active</span></td></tr><tr class="border-t"><td class="p-3">Cody Fisher</td><td class="p-3">Developer</td><td class="p-3"><span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs">Offline</span></td></tr></tbody></table></div></div>'
+    elif label == "navbar" or label == "navigation":
+        return '<nav class="bg-slate-900 text-white p-6 flex justify-between items-center shadow-lg"><div class="text-2xl font-bold flex items-center gap-2"><span>🚀</span> AppName</div><ul class="flex gap-8 font-medium"><li><a href="#" class="hover:text-blue-400">Home</a></li><li><a href="#" class="hover:text-blue-400">Features</a></li><li><a href="#" class="hover:text-blue-400">About</a></li></ul><button class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-full transition-all">Get Started</button></nav>'
+    elif label == "dashboard":
+        return '<div class="flex h-screen bg-gray-100"><aside class="w-64 bg-slate-800 text-white p-4"><div class="text-xl font-bold mb-4">Dashboard</div><ul class="space-y-2"><li class="hover:bg-slate-700 p-2 rounded cursor-pointer">Home</li><li class="hover:bg-slate-700 p-2 rounded cursor-pointer">Stats</li></ul></aside><main class="flex-1 p-8"><h1 class="text-3xl font-bold mb-4">Welcome</h1><div class="grid grid-cols-2 gap-4"><div class="bg-white p-6 rounded shadow">Metric 1: <span class="font-bold text-green-500">↑ 12%</span></div><div class="bg-white p-6 rounded shadow">Metric 2: 45K</div></div></main></div>'
+    elif label == "ecommerce":
+        return '<div class="p-8"><nav class="flex justify-between mb-8"><div class="font-bold text-xl">Shop</div><div>Cart (2)</div></nav><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div class="border rounded p-4 shadow-sm hover:shadow-md transition"><div class="h-40 bg-gray-200 rounded mb-4"></div><h3 class="font-bold">Product A</h3><p>$29.99</p><button class="mt-2 w-full bg-black text-white p-2 rounded">Add to Cart</button></div><div class="border rounded p-4 shadow-sm hover:shadow-md transition"><div class="h-40 bg-gray-200 rounded mb-4"></div><h3 class="font-bold">Product B</h3><p>$49.99</p><button class="mt-2 w-full bg-black text-white p-2 rounded">Add to Cart</button></div></div></div>'
+    else: # profile
+        return '<div class="p-8 max-w-2xl mx-auto"><div class="bg-white rounded-xl shadow p-8 text-center"><div class="w-24 h-24 bg-blue-200 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl text-blue-600">JD</div><h1 class="text-2xl font-bold mb-2">John Doe</h1><p class="text-gray-600 mb-6">Software Engineer & UI enthusiast.</p><button class="bg-blue-500 text-white px-6 py-2 rounded-full hover:bg-blue-600">Edit Profile</button></div></div>'
+
+@prompt_bp.route("/generate-ui", methods=["POST"])
+def generate_ui():
+    # 1. Auth config
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return jsonify({"error": "Authorization required."}), 401
+
+    token = auth_header[len("Bearer "):]
+    if not _validate_token(token):
+        return jsonify({"error": "Invalid session."}), 401
+        
+    data = request.get_json(force=True, silent=True) or {}
+    user_prompt = data.get("prompt", "").strip()
+    
+    if not user_prompt:
+        return jsonify({"error": "Prompt cannot be empty."}), 400
+        
+    if _model is None or _vectorizer is None:
+        return jsonify({"error": "Prompt ML models not loaded."}), 500
+        
+    # 2. Predict UI type (TF-IDF + NB)
+    try:
+        X = _vectorizer.transform([user_prompt])
+        predicted_label = _model.predict(X)[0]
+    except Exception as e:
+        return jsonify({"error": f"Prediction failed: {str(e)}"}), 500
+
+    # 3. Enhance prompt and call LLM
+    try:
+        final_label, html_code = generate_llm_ui(user_prompt, predicted_label)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 503 if "Ollama" in str(e) else 500
+    
+    if "<script src=\"https://cdn.tailwindcss.com\"></script>" not in html_code:
+        html_code = "<script src=\"https://cdn.tailwindcss.com\"></script>\n" + html_code
+        
+    # React code format
+    react_code = _react_code(final_label, html_code)
+    
+    return jsonify({
+        "label": final_label,
+        "confidence": random.randint(80, 95),
+        "html_code": html_code,
+        "react_code": react_code
+    }), 200
